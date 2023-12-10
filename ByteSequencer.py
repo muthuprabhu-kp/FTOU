@@ -1,12 +1,44 @@
+from collections import deque
+from threading import Thread
+
+
 class Sequencer:
     def __init__(self, name):
         self.name = name
+        self.file = open(name, "wb")
+        self.queue = deque()
+        self.running = False
         self.byte_sequence = []
+        self.thread = Thread(target=self._writer_thread)
 
     def add(self, byte):
-        self.byte_sequence.append(byte)
-        self.arrange()
+        index = byte['index']
+        self.queue.append(byte)
+        # self.byte_sequence.append(byte)
+        # self.arrange()
         pass
+
+    def close(self):
+        """
+        Wait for the writer thread to finish and close the open file.
+        """
+        self.running = False
+        self.thread.join()
+        self.file.close()
+
+    def _writer_thread(self):
+        """
+        Runs until a stop is requested and the queue is exhausted.
+        """
+        self.running = True
+        while self.running or len(self.queue):
+            if len(self.queue):
+                byte = self.queue.popleft()
+                chunk = byte['index']
+                data = byte['data']
+                chunk_size = len(data)
+                self.file.seek(chunk*chunk_size)
+                self.file.write(data)
 
     def arrange(self):
         self.byte_sequence.sort(key=lambda x: x['index'])
