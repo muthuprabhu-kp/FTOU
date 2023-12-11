@@ -1,11 +1,11 @@
-import os
+import getopt
 import random
 import socket
-import toml
-import time
 import sys
 
-from ByteSequencer import Sequencer
+import toml
+
+from Server.ByteSequencer import Sequencer
 
 SERVER_IP = "127.0.0.1"
 UDP_PORT_RANGE = list(range(5000, 6000))
@@ -39,7 +39,7 @@ def send_ack(tcp_conn, prt):
     tcp_conn.send((bytes(f'PRT:{prt};TYP:ACK;', 'utf-8') + b"\0" * 100)[:100])
 
 
-def server():
+def server(config):
     print(f'Listening on: {SERVER_IP}:{TCP_PORT}')
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as tcp_sock:
         tcp_sock.bind((SERVER_IP, TCP_PORT))
@@ -62,8 +62,29 @@ def server():
                 seq.add(bye_obj)
                 # data = conn.recv(1024)
 
+                # conn.sendall(data)
 
-                #conn.sendall(data)
 
 if __name__ == '__main__':
-    server()
+    config = {}
+    options = "hc:"
+    argumentList = sys.argv[1:]
+    long_options = ["Help", "Config="]
+    try:
+        # Parsing argument
+        arguments, values = getopt.getopt(argumentList, options, long_options)
+
+        # checking each argument
+        for currentArgument, currentValue in arguments:
+
+            if currentArgument in ("-h", "--Help"):
+                print("Displaying Help")
+            elif currentArgument in ("-c", "--Config"):
+                print("Enabling special output mode (% s)".format(currentValue))
+                with open(currentValue, 'r') as f:
+                    config = toml.load(f)
+
+    except getopt.error as err:
+        # output error, and return with an error code
+        print(str(err))
+    server(config)
