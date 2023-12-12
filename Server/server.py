@@ -39,18 +39,21 @@ def send_ack(tcp_conn, prt):
     tcp_conn.send((bytes(f'PRT:{prt};TYP:ACK;', 'utf-8') + b"\0" * 100)[:100])
 
 
-def server(config):
-    print(f'Listening on: {SERVER_IP}:{TCP_PORT}')
+def start_server(config):
+    server_ip = config['SERVER']['SERVER_IP']
+    tcp_port = config['SERVER']['TCP_PORT']
+    udp_port_range = config['SERVER']['UDP_PORT_RANGE']
+    print(f'Listening on: {server_ip}:{tcp_port}')
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as tcp_sock:
-        tcp_sock.bind((SERVER_IP, TCP_PORT))
+        tcp_sock.bind((server_ip, tcp_port))
         tcp_sock.listen()
         conn, addr = tcp_sock.accept()
         with conn:
             print(f"Connected by {addr}")
-            udp_port = random.choice(UDP_PORT_RANGE)
+            udp_port = random.choice(udp_port_range)
             udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            udp_sock.bind((SERVER_IP, udp_port))
-            conn.send((bytes(f'TYP:UDP;PRT:{udp_port};HST:{SERVER_IP};', 'utf-8') + b"\0" * 100)[:100])
+            udp_sock.bind((server_ip, udp_port))
+            conn.send((bytes(f'TYP:UDP;PRT:{udp_port};HST:{server_ip};', 'utf-8') + b"\0" * 100)[:100])
             while True:
                 data, uaddr = udp_sock.recvfrom(1024)
                 if uaddr[0] != addr[0] or not data:
@@ -87,4 +90,4 @@ if __name__ == '__main__':
     except getopt.error as err:
         # output error, and return with an error code
         print(str(err))
-    server(config)
+    start_server(config)

@@ -2,3 +2,5 @@
 IP = "127.0.0.1"
 UDP_PORT_RANGE = "5000 - 6000"
 PORT = 23232
+[AUTH]
+TYPE = "file"
