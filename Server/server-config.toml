@@ -1,0 +1,10 @@
+[server]
+host = "127.0.0.1"
+udp_port_range = "5000 - 6000"
+port = 23232
+[ssl]
+enabled = false
+private_key = "./private.key"
+cert_chain = "./certchain.pem"
+[auth]
+TYPE = "file"
