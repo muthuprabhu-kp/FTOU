@@ -7,4 +7,4 @@ enabled = false
 private_key = "./private.key"
 cert_chain = "./certchain.pem"
 [auth]
-TYPE = "file"
+type = "file"

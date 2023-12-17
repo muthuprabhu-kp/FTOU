@@ -1,1 +1,7 @@
+beautifultable==1.1.0
+filelock==3.13.1
+pyasn1==0.5.1
+pysondb==1.6.7
+rsa==4.9
 toml==0.10.2
+wcwidth==0.2.12
