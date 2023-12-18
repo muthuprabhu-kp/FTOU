@@ -13,7 +13,6 @@ class Auth:
             return False
         key = user_info['key']
         try:
-            rsa.decrypt()
             rsa.verify(auth_data, signature, key)
         except Exception as e:
             print(e)

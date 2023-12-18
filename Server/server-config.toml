@@ -8,3 +8,4 @@ private_key = "./private.key"
 cert_chain = "./certchain.pem"
 [auth]
 type = "file"
+path = './db'

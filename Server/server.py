@@ -1,4 +1,5 @@
 import getopt
+import json
 import random
 import socket
 import ssl
@@ -7,6 +8,7 @@ from contextlib import nullcontext, contextmanager
 
 import toml
 
+from Server.Auth import Auth
 from Server.ByteSequencer import Sequencer
 
 SERVER_IP = "127.0.0.1"
@@ -20,6 +22,11 @@ def get_sequence_obj(name):
     if name not in sequence_manager:
         sequence_manager[name] = Sequencer(name)
     return sequence_manager.get(name)
+
+def get_auth_data(data):
+    json_str = data.decode('utf-8')
+    json_data = json.loads(json_str)
+    return json_data['data'], json_data['hash']
 
 
 def get_header(data):
@@ -57,6 +64,8 @@ def start_server(config):
     is_ssl_enabled = config['ssl']['enabled']
     cert_chain = config['ssl']['cert_chain']
     private_key = config['ssl']['private_key']
+    auth_path = config['auth']['path']
+    auth = Auth(auth_path)
     print(f'Listening on: {server_ip}:{tcp_port}')
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as tcp_sock:
         tcp_sock.bind((server_ip, tcp_port))
@@ -67,6 +76,11 @@ def start_server(config):
             context.load_cert_chain(cert_chain, private_key)
         with ssl_context(is_ssl_enabled, context, tcp_sock) as ssl_sock:
             conn, addr = ssl_sock.accept()
+            auth_param, hash = get_auth_data(ssl_sock.recv(1024))
+            auth_param.decode('utf-8')
+            is_valid = auth.is_valid_user(hash, auth_param)
+            if not is_valid:
+                conn.close()
             with conn:
                 print(f"Connected by {addr}")
                 udp_port = random.choice(udp_port_range)
