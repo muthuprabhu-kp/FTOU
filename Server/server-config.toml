@@ -1,11 +1,12 @@
 [server]
-host = "127.0.0.1"
+host = "localhost"
 udp_port_range = "5000 - 6000"
 port = 23232
 [ssl]
-enabled = false
-private_key = "./private.key"
-cert_chain = "./certchain.pem"
+enabled = true
+private_key = "/home/hackers/easy-rsa/generated/cert.key"
+cert_chain = "/home/hackers/easy-rsa/generated/cert.crt"
+[db]
+path = '../db'
 [auth]
 type = "file"
-path = './db'

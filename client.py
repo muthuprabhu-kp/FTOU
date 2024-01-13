@@ -1,12 +1,37 @@
+import json
 import os
 import socket
 import time
 import sys
+import ssl
+from base64 import b64encode
 
-HOST_IP = "127.0.0.1"
+import rsa
+
+HOST_IP = "localhost"
+USER_ID = "test123"
+AUTH_KEY = "/home/hackers/easy-rsa/generated/generate_rsa_key/private1.pem"
 TCP_PORT = 23232
 buf = 1024 - 100
 file_name = sys.argv[1]
+
+
+def load_file(path) -> bytes:
+    data = ''
+    with open(path, 'rb') as f:
+        data = f.read()
+    return data
+
+
+def get_auth_info():
+    epoch_time = int(time.time())
+    private_str = load_file(AUTH_KEY)
+    private = rsa.PrivateKey.load_pkcs1(private_str)
+    # private = rsa.pem.load_pem(private_str, b"RSA PRIVATE KEY")
+    message = f"USER_ID:{USER_ID};TIM:{epoch_time};"
+    # data = bytes(message, 'utf-8')
+    signature = b64encode(rsa.sign(message.encode(), private, "SHA-256")).decode()
+    return bytes(f"TYP: AUTH;USER_ID:{USER_ID};TIM:{epoch_time};SIG:{signature};", 'utf-8')
 
 
 def get_header(data):
@@ -39,19 +64,38 @@ def send(host, port):
 
 
 def client():
+    context = ssl.create_default_context()
+    # context.verify_mode = ssl.CERT_NONE
+    context.load_verify_locations('/home/hackers/easy-rsa/generated/cert.crt')
+    auth_info = get_auth_info()
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as tcp_sock:
         tcp_sock.connect((HOST_IP, TCP_PORT))
-        while True:
-            data = tcp_sock.recv(1024)
-            if not data:
-                break
-            header = get_header(data)
-            print(header)
-            if header['TYP'] == 'ACK':
-                print(f'Received ACK for {header["PRT"]}')
-            if header['TYP'] == 'UDP':
-                send(header['HST'], header['PRT'])
+        with context.wrap_socket(tcp_sock, server_hostname=HOST_IP) as ssock:
+            print(ssock.version())
+            while True:
+                # send(header['HST'], header['PRT'])
+                ssock.send((auth_info + b"\0" * 100)[:200])
+                data = ssock.recv(1024)
+                if not data:
+                    break
+                header = get_header(data)
+                print(header)
+                if header['TYP'] == 'AUTH' and header['STS'] == '200':
+                    print(header['MSG'])
+                if header['TYP'] == 'AUTH' and header['STS'] == '401':
+                    print(header['MSG'])
+                if header['TYP'] == 'ACK':
+                    print(f'Received ACK for {header["PRT"]}')
+                if header['TYP'] == 'UDP':
+                    send(header['HST'], header['PRT'])
 
 
 if __name__ == '__main__':
+    # (pubkey, privkey) = rsa.newkeys(512)
+    # a = open("/home/hackers/easy-rsa/generated/generate_rsa_key/private1.pem", "wb")
+    # a.write(privkey.save_pkcs1())
+    # a.close()
+    # a = open("/home/hackers/easy-rsa/generated/generate_rsa_key/public1.pem", "wb")
+    # a.write(pubkey.save_pkcs1())
+    # a.close()
     client()

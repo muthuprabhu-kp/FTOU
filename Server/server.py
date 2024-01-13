@@ -1,5 +1,4 @@
 import getopt
-import json
 import random
 import socket
 import ssl
@@ -8,7 +7,7 @@ from contextlib import nullcontext, contextmanager
 
 import toml
 
-from Server.Auth import Auth
+from Server.util.Auth import Auth
 from Server.ByteSequencer import Sequencer
 
 SERVER_IP = "127.0.0.1"
@@ -24,9 +23,9 @@ def get_sequence_obj(name):
     return sequence_manager.get(name)
 
 def get_auth_data(data):
-    json_str = data.decode('utf-8')
-    json_data = json.loads(json_str)
-    return json_data['data'], json_data['hash']
+    auth_string = data.decode('utf-8')
+    auth_data = dict(item.split(':') for item in auth_string.split(';') if item and ':' in item)
+    return auth_data
 
 
 def get_header(data):
@@ -60,11 +59,13 @@ def send_ack(tcp_conn, prt):
 def start_server(config):
     server_ip = config['server']['host']
     tcp_port = config['server']['port']
-    udp_port_range = config['server']['udp_port_range']
+    udp_range = config['server']['udp_port_range']
+    udp_range_list = udp_range.split('-')
+    udp_port_range = list(range(int(udp_range_list[0]), int(udp_range_list[1])))
     is_ssl_enabled = config['ssl']['enabled']
-    cert_chain = config['ssl']['cert_chain']
+    cert_chain = config['ssl'].get('cert_chain', None)
     private_key = config['ssl']['private_key']
-    auth_path = config['auth']['path']
+    auth_path = config['db']['path']
     auth = Auth(auth_path)
     print(f'Listening on: {server_ip}:{tcp_port}')
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as tcp_sock:
@@ -76,11 +77,13 @@ def start_server(config):
             context.load_cert_chain(cert_chain, private_key)
         with ssl_context(is_ssl_enabled, context, tcp_sock) as ssl_sock:
             conn, addr = ssl_sock.accept()
-            auth_param, hash = get_auth_data(ssl_sock.recv(1024))
-            auth_param.decode('utf-8')
-            is_valid = auth.is_valid_user(hash, auth_param)
+            ssl_sock.settimeout(5)
+            auth_param = get_auth_data(conn.recv(1024))
+            # auth_param.decode('utf-8')
+            is_valid = auth.is_valid_user(auth_param)
             if not is_valid:
                 conn.close()
+            ssl_sock.settimeout(None)
             with conn:
                 print(f"Connected by {addr}")
                 udp_port = random.choice(udp_port_range)
