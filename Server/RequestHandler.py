@@ -1,6 +1,8 @@
 import logging
 import socketserver
 
+from Server.Shell.UserShell import Shell
+
 
 class RequestHandler(socketserver.BaseRequestHandler):
     def setup(self) -> None:
@@ -14,20 +16,26 @@ class RequestHandler(socketserver.BaseRequestHandler):
     def handle(self) -> None:
         conn = self.request
         session = self.server.session
-        auth = session.get_auth()
-        while True:
-            data = conn.recv(1024)
-            auth_param = self.get_auth_data(data)
-            is_valid, user = auth.is_valid_user(auth_param)
-            if not is_valid:
+        # auth = session.get_auth()
+        data = conn.recv(1024)
+        data_param = self.get_auth_data(data)
+        r_type = data_param['TYP']
+        sid, user = session.is_valid_user(data_param)
+        if r_type.strip() == "AUTH":
+            if not sid:
                 logging.info("Invalid User")
                 conn.send((bytes(f'TYP:AUTH;STS:401;MSG:LoginFailed;', 'utf-8') + b"\0" * 100)[:100])
-                break
+                return
             logging.info("Valid User")
-            conn.send((bytes(f'TYP:AUTH;STS:200;MSG:LoggedInSuccessfully;', 'utf-8') + b"\0" * 100)[:100])
-
-            #logging.info(f"recv: {data!r}")
-            #conn.sendall(data)
+            conn.send((bytes(f'TYP:AUTH;STS:200;MSG:LoggedInSuccessfully;SID:{sid}', 'utf-8') + b"\0" * 100)[:100])
+            return
+        s = Shell(user, conn, data_param)
+        s.start()
+        s.join()
+        """if r_type == "CMD":
+            q = session.get_queue_by_id(sid)
+            if q:
+                q.put(data_param)"""
 
     def finish(self) -> None:
         logging.info("Finish request.")

@@ -63,6 +63,19 @@ def send(host, port):
     f.close()
 
 
+def generate_command(sid, command):
+    return f"TYP:CMD;SID:{sid};CMD:{command}"
+
+
+def shell_mode(sid, user_id, c_socket):
+    while True:
+        command = input(f"{user_id}@{sid}>")
+        if command == "exit":
+            return 1
+        c_socket.sendall(generate_command(sid,command).encode())
+        print(c_socket.recv(1024).decode())
+
+
 def client():
     context = ssl.create_default_context()
     # context.verify_mode = ssl.CERT_NONE
@@ -82,6 +95,10 @@ def client():
                 print(header)
                 if header['TYP'] == 'AUTH' and header['STS'] == '200':
                     print(header['MSG'])
+                    sid = header['SID'].rstrip('\x00')
+                    a = shell_mode(sid, USER_ID, ssock)
+                    if a == 1:
+                        break
                 if header['TYP'] == 'AUTH' and header['STS'] == '401':
                     print(header['MSG'])
                 if header['TYP'] == 'ACK':

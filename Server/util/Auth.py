@@ -24,7 +24,7 @@ class Auth:
         except Exception as e:
             print(e)
             return False, None
-        return True, User(user_info)
+        return True, User(user_info[0])
 
 
 if __name__ == '__main__':
