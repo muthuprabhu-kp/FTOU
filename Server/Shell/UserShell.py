@@ -35,13 +35,15 @@ class Command:
             return []
         raw_command = data['CMD']
         command_split = raw_command.split(' ')
-        return
+        return command_split
 
     def get_command(self, command):
+        com = command
+        com.append(None)
         action = None
-        match command:
+        match com[0]:
             case "ls":
-                action = self.directory_service.ls()
+                action = self.directory_service.ls(com[1])
             case _:
                 action = None
         return action

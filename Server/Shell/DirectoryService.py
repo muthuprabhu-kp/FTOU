@@ -1,3 +1,4 @@
+import json
 import os
 import pwd
 from datetime import datetime
@@ -42,7 +43,7 @@ class DirectoryService:
 
         pass
 
-    def ls(self):
+    def ls(self, options=None):
         files_info = []
         try:
             path = Path(self.current_dir)
@@ -59,7 +60,7 @@ class DirectoryService:
         except Exception as e:
             print(e)
             return "You dont have enough permission to list dir"
-        return files_info
+        return json.dumps(files_info)
 
 
 if __name__ == '__main__':

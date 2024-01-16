@@ -31,8 +31,8 @@ class Session:
         return self.config.get_socket_host(), self.config.get_socket_port()
 
     def is_valid_user(self, auth_data):
-        if 'sid' in auth_data:
-            sid = auth_data.get('sid')
+        if 'SID' in auth_data:
+            sid = auth_data.get('SID')
             if sid in self.session_id:
                 return sid, self.session_id.get(sid)
         is_valid, user = self.get_auth().is_valid_user(auth_data)
