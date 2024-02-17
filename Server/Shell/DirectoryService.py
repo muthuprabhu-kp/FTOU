@@ -13,8 +13,11 @@ class DirectoryService:
     def get_path(self, file_path=None):
         fpath = file_path or self.current_dir
         path = Path(fpath)
-
         return path
+
+    def set_working_dir(self, path):
+        self.current_dir = path
+        pass
 
     def get_size(self, size):
         if size < 1024:
@@ -39,9 +42,13 @@ class DirectoryService:
 
     def cd(self, path):
         if not path:
-            return "Path can not be empty"
-
-        pass
+            return 401, "Path can not be empty"
+        p = self.get_path(path)
+        has_permission = self.check_permission(p)
+        if not has_permission:
+            return 401, "You dont have enough permission to list dir"
+        self.set_working_dir(path)
+        return 200, f"cd to {path}"
 
     def ls(self, options=None):
         files_info = []
@@ -51,7 +58,7 @@ class DirectoryService:
             files = [f for f in path.iterdir()]
             # print(files)
             if not has_permission:
-                return "You dont have enough permission to list dir"
+                return 401, "You dont have enough permission to list dir"
             for f in files:
                 stat = f.lstat()
                 m_date = datetime.fromtimestamp(stat.st_mtime).strftime("%Y-%m-%d %H:%M:%S")
@@ -60,7 +67,7 @@ class DirectoryService:
         except Exception as e:
             print(e)
             return "You dont have enough permission to list dir"
-        return json.dumps(files_info)
+        return 200, json.dumps(files_info)
 
 
 if __name__ == '__main__':
